@@ -218,10 +218,11 @@ func handleReactionMessage(ctx context.Context, payload string, redisClient *red
 func getMessageMetadata(slackClient *slack.Client, channel, timestamp string) (*PRMetadata, error) {
 	// Retrieve the message using conversations.history
 	params := &slack.GetConversationHistoryParameters{
-		ChannelID: channel,
-		Latest:    timestamp,
-		Limit:     1,
-		Inclusive: true,
+		ChannelID:          channel,
+		Latest:             timestamp,
+		Limit:              1,
+		Inclusive:          true,
+		IncludeAllMetadata: true,
 	}
 
 	history, err := slackClient.GetConversationHistory(params)
