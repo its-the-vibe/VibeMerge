@@ -1,0 +1,13 @@
+services:
+  vibemerge:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vibemerge
+    restart: unless-stopped
+    environment:
+      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}
+      - REDIS_ADDR=${REDIS_ADDR:-localhost:6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - WORK_DIR=${WORK_DIR:-/tmp/vibemerge}
+    network_mode: host
