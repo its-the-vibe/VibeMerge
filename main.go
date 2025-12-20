@@ -22,6 +22,7 @@ type Config struct {
 	WorkDir       string
 	TargetEmoji   string
 	TargetBranch  string
+	PoppitQueue   string
 }
 
 // ReactionEvent represents the message from slack-relay-reaction-added channel
@@ -121,6 +122,7 @@ func loadConfig() *Config {
 		WorkDir:       getEnv("WORK_DIR", "/tmp/vibemerge"),
 		TargetEmoji:   getEnv("TARGET_EMOJI", "heart_eyes_cat"),
 		TargetBranch:  getEnv("TARGET_BRANCH", "refs/heads/main"),
+		PoppitQueue:   getEnv("POPPIT_QUEUE", "poppit-commands"),
 	}
 
 	if config.SlackBotToken == "" {
@@ -193,7 +195,7 @@ func handleReactionMessage(ctx context.Context, payload string, redisClient *red
 	poppitPayload := PoppitPayload{
 		Repo:   metadata.Repository,
 		Branch: config.TargetBranch,
-		Type:   "git-webhook",
+		Type:   metadata.EventAction,
 		Dir:    config.WorkDir,
 		Commands: []string{
 			fmt.Sprintf("gh pr --repo %s ready %d", metadata.Repository, metadata.PRNumber),
@@ -207,8 +209,8 @@ func handleReactionMessage(ctx context.Context, payload string, redisClient *red
 		return fmt.Errorf("failed to marshal poppit payload: %w", err)
 	}
 
-	if err := redisClient.RPush(ctx, "poppit-commands", string(payloadJSON)).Err(); err != nil {
-		return fmt.Errorf("failed to push to poppit-commands: %w", err)
+	if err := redisClient.RPush(ctx, config.PoppitQueue, string(payloadJSON)).Err(); err != nil {
+		return fmt.Errorf("failed to push to %s: %w", config.PoppitQueue, err)
 	}
 
 	log.Printf("Successfully queued merge command for PR %d in %s", metadata.PRNumber, metadata.Repository)

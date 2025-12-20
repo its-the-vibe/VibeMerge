@@ -15,3 +15,4 @@ services:
       - WORK_DIR=${WORK_DIR:-/tmp/vibemerge}
       - TARGET_EMOJI=${TARGET_EMOJI:-heart_eyes_cat}
       - TARGET_BRANCH=${TARGET_BRANCH:-refs/heads/main}
+      - POPPIT_QUEUE=${POPPIT_QUEUE:-poppit:notifications}
