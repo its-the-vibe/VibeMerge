@@ -4,12 +4,14 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: vibemerge
+    read_only: true
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
     environment:
       - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}
-      - REDIS_ADDR=${REDIS_ADDR:-localhost:6379}
+      - REDIS_ADDR=${REDIS_ADDR:-host.docker.internal:6379}
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       - WORK_DIR=${WORK_DIR:-/tmp/vibemerge}
       - TARGET_EMOJI=${TARGET_EMOJI:-heart_eyes_cat}
       - TARGET_BRANCH=${TARGET_BRANCH:-refs/heads/main}
-    network_mode: host
