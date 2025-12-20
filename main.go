@@ -15,11 +15,13 @@ import (
 
 // Config holds the application configuration
 type Config struct {
-	SlackBotToken string
-	RedisAddr     string
-	RedisPassword string
-	RedisDB       int
-	WorkDir       string
+	SlackBotToken   string
+	RedisAddr       string
+	RedisPassword   string
+	RedisDB         int
+	WorkDir         string
+	TargetEmoji     string
+	TargetBranch    string
 }
 
 // ReactionEvent represents the message from slack-relay-reaction-added channel
@@ -117,6 +119,8 @@ func loadConfig() *Config {
 		RedisPassword: getEnv("REDIS_PASSWORD", ""),
 		RedisDB:       0,
 		WorkDir:       getEnv("WORK_DIR", "/tmp/vibemerge"),
+		TargetEmoji:   getEnv("TARGET_EMOJI", "heart_eyes_cat"),
+		TargetBranch:  getEnv("TARGET_BRANCH", "refs/heads/main"),
 	}
 
 	if config.SlackBotToken == "" {
@@ -163,14 +167,14 @@ func handleReactionMessage(ctx context.Context, payload string, redisClient *red
 		return fmt.Errorf("failed to unmarshal reaction event: %w", err)
 	}
 
-	// Only process heart_eyes_cat reactions
-	if reactionEvent.Event.Reaction != "heart_eyes_cat" {
+	// Only process configured target emoji reactions
+	if reactionEvent.Event.Reaction != config.TargetEmoji {
 		log.Printf("Ignoring reaction: %s", reactionEvent.Event.Reaction)
 		return nil
 	}
 
-	log.Printf("Processing heart_eyes_cat reaction on message %s in channel %s",
-		reactionEvent.Event.Item.Ts, reactionEvent.Event.Item.Channel)
+	log.Printf("Processing %s reaction on message %s in channel %s",
+		config.TargetEmoji, reactionEvent.Event.Item.Ts, reactionEvent.Event.Item.Channel)
 
 	// Retrieve the message from Slack
 	metadata, err := getMessageMetadata(slackClient, reactionEvent.Event.Item.Channel, reactionEvent.Event.Item.Ts)
@@ -188,7 +192,7 @@ func handleReactionMessage(ctx context.Context, payload string, redisClient *red
 	// Create Poppit payload
 	poppitPayload := PoppitPayload{
 		Repo:   metadata.Repository,
-		Branch: "refs/heads/main",
+		Branch: config.TargetBranch,
 		Type:   "git-webhook",
 		Dir:    config.WorkDir,
 		Commands: []string{

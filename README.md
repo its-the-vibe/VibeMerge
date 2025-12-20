@@ -25,12 +25,14 @@ VibeMerge is configured using environment variables:
 | `REDIS_ADDR` | Redis server address | `localhost:6379` | No |
 | `REDIS_PASSWORD` | Redis password | - | No |
 | `WORK_DIR` | Working directory for Poppit commands | `/tmp/vibemerge` | No |
+| `TARGET_EMOJI` | Emoji reaction to listen for | `heart_eyes_cat` | No |
+| `TARGET_BRANCH` | Target branch for merge operations | `refs/heads/main` | No |
 
 ## Running Locally
 
 ### Prerequisites
 
-- Go 1.23 or later
+- Go 1.24 or later
 - Redis server running
 - Slack Bot Token with appropriate permissions
 
