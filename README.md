@@ -52,7 +52,7 @@ export REDIS_ADDR="localhost:6379"
 
 ### Using Docker Compose
 
-1. Create a `.env` file with your configuration:
+1. Create a `.env` file with your configuration (see `.env.example` for a template):
 
 ```env
 SLACK_BOT_TOKEN=xoxb-your-token-here

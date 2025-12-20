@@ -15,13 +15,13 @@ import (
 
 // Config holds the application configuration
 type Config struct {
-	SlackBotToken   string
-	RedisAddr       string
-	RedisPassword   string
-	RedisDB         int
-	WorkDir         string
-	TargetEmoji     string
-	TargetBranch    string
+	SlackBotToken string
+	RedisAddr     string
+	RedisPassword string
+	RedisDB       int
+	WorkDir       string
+	TargetEmoji   string
+	TargetBranch  string
 }
 
 // ReactionEvent represents the message from slack-relay-reaction-added channel
