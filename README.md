@@ -27,6 +27,7 @@ VibeMerge is configured using environment variables:
 | `WORK_DIR` | Working directory for Poppit commands | `/tmp/vibemerge` | No |
 | `TARGET_EMOJI` | Emoji reaction to listen for | `heart_eyes_cat` | No |
 | `TARGET_BRANCH` | Target branch for merge operations | `refs/heads/main` | No |
+| `TIMEBOMB_CHANNEL` | Redis channel for TimeBomb TTL messages | `timebomb-messages` | No |
 
 ## Running Locally
 
@@ -92,6 +93,7 @@ docker run -d \
 4. **Validation**: Checks for PR metadata (repository, PR number, etc.)
 5. **Command Generation**: Creates Poppit payload with merge commands
 6. **Queue**: Pushes the payload to the `poppit-commands` Redis list
+7. **TTL Setting**: Publishes a message to TimeBomb to delete the processed message after 24 hours
 
 ## Expected Message Format
 
