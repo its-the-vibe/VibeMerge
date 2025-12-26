@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 
 	"github.com/redis/go-redis/v9"
@@ -133,7 +134,7 @@ func loadConfig() *Config {
 		TargetBranch:    getEnv("TARGET_BRANCH", "refs/heads/main"),
 		PoppitQueue:     getEnv("POPPIT_QUEUE", "poppit-commands"),
 		TimeBombChannel: getEnv("TIMEBOMB_CHANNEL", "timebomb-messages"),
-		TimeBombTTL:     86400, // 24 hours in seconds
+		TimeBombTTL:     getEnvInt("TIMEBOMB_TTL", 86400), // 24 hours in seconds
 	}
 
 	if config.SlackBotToken == "" {
@@ -146,6 +147,15 @@ func loadConfig() *Config {
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
+	}
+	return defaultValue
+}
+
+func getEnvInt(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		if intValue, err := strconv.Atoi(value); err == nil {
+			return intValue
+		}
 	}
 	return defaultValue
 }

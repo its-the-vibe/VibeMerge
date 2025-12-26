@@ -28,6 +28,7 @@ VibeMerge is configured using environment variables:
 | `TARGET_EMOJI` | Emoji reaction to listen for | `heart_eyes_cat` | No |
 | `TARGET_BRANCH` | Target branch for merge operations | `refs/heads/main` | No |
 | `TIMEBOMB_CHANNEL` | Redis channel for TimeBomb TTL messages | `timebomb-messages` | No |
+| `TIMEBOMB_TTL` | TTL in seconds for processed messages | `86400` (24 hours) | No |
 
 ## Running Locally
 
