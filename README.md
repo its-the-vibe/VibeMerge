@@ -29,6 +29,7 @@ VibeMerge is configured using environment variables:
 | `TARGET_BRANCH` | Target branch for merge operations | `refs/heads/main` | No |
 | `TIMEBOMB_CHANNEL` | Redis channel for TimeBomb TTL messages | `timebomb-messages` | No |
 | `TIMEBOMB_TTL` | TTL in seconds for processed messages | `86400` (24 hours) | No |
+| `LOG_LEVEL` | Logging level (DEBUG, INFO, WARNING, ERROR) | `INFO` | No |
 
 ## Running Locally
 
