@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 
 	"github.com/redis/go-redis/v9"
@@ -15,14 +16,16 @@ import (
 
 // Config holds the application configuration
 type Config struct {
-	SlackBotToken string
-	RedisAddr     string
-	RedisPassword string
-	RedisDB       int
-	WorkDir       string
-	TargetEmoji   string
-	TargetBranch  string
-	PoppitQueue   string
+	SlackBotToken   string
+	RedisAddr       string
+	RedisPassword   string
+	RedisDB         int
+	WorkDir         string
+	TargetEmoji     string
+	TargetBranch    string
+	PoppitQueue     string
+	TimeBombChannel string
+	TimeBombTTL     int
 }
 
 // ReactionEvent represents the message from slack-relay-reaction-added channel
@@ -77,6 +80,13 @@ type PoppitPayload struct {
 	Commands []string `json:"commands"`
 }
 
+// TimeBombMessage represents the TTL message to send to TimeBomb
+type TimeBombMessage struct {
+	Channel string `json:"channel"`
+	Ts      string `json:"ts"`
+	TTL     int    `json:"ttl"`
+}
+
 func main() {
 	config := loadConfig()
 
@@ -115,14 +125,16 @@ func main() {
 
 func loadConfig() *Config {
 	config := &Config{
-		SlackBotToken: getEnv("SLACK_BOT_TOKEN", ""),
-		RedisAddr:     getEnv("REDIS_ADDR", "localhost:6379"),
-		RedisPassword: getEnv("REDIS_PASSWORD", ""),
-		RedisDB:       0,
-		WorkDir:       getEnv("WORK_DIR", "/tmp/vibemerge"),
-		TargetEmoji:   getEnv("TARGET_EMOJI", "heart_eyes_cat"),
-		TargetBranch:  getEnv("TARGET_BRANCH", "refs/heads/main"),
-		PoppitQueue:   getEnv("POPPIT_QUEUE", "poppit-commands"),
+		SlackBotToken:   getEnv("SLACK_BOT_TOKEN", ""),
+		RedisAddr:       getEnv("REDIS_ADDR", "localhost:6379"),
+		RedisPassword:   getEnv("REDIS_PASSWORD", ""),
+		RedisDB:         0,
+		WorkDir:         getEnv("WORK_DIR", "/tmp/vibemerge"),
+		TargetEmoji:     getEnv("TARGET_EMOJI", "heart_eyes_cat"),
+		TargetBranch:    getEnv("TARGET_BRANCH", "refs/heads/main"),
+		PoppitQueue:     getEnv("POPPIT_QUEUE", "poppit-commands"),
+		TimeBombChannel: getEnv("TIMEBOMB_CHANNEL", "timebomb-messages"),
+		TimeBombTTL:     getEnvInt("TIMEBOMB_TTL", 86400), // 24 hours in seconds
 	}
 
 	if config.SlackBotToken == "" {
@@ -135,6 +147,16 @@ func loadConfig() *Config {
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
+	}
+	return defaultValue
+}
+
+func getEnvInt(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		if intValue, err := strconv.Atoi(value); err == nil {
+			return intValue
+		}
+		log.Printf("Warning: invalid integer value for %s: %s, using default: %d", key, value, defaultValue)
 	}
 	return defaultValue
 }
@@ -214,6 +236,15 @@ func handleReactionMessage(ctx context.Context, payload string, redisClient *red
 	}
 
 	log.Printf("Successfully queued merge command for PR %d in %s", metadata.PRNumber, metadata.Repository)
+
+	// Set TTL on the processed message by publishing to TimeBomb
+	channel := reactionEvent.Event.Item.Channel
+	timestamp := reactionEvent.Event.Item.Ts
+	if err := publishTimeBombMessage(ctx, redisClient, config, channel, timestamp); err != nil {
+		// Log the error but don't fail the entire operation
+		log.Printf("Warning: failed to set TTL on message: %v", err)
+	}
+
 	return nil
 }
 
@@ -260,4 +291,24 @@ func getMessageMetadata(slackClient *slack.Client, channel, timestamp string) (*
 	}
 
 	return &metadata, nil
+}
+
+func publishTimeBombMessage(ctx context.Context, redisClient *redis.Client, config *Config, channel, timestamp string) error {
+	timeBombMsg := TimeBombMessage{
+		Channel: channel,
+		Ts:      timestamp,
+		TTL:     config.TimeBombTTL,
+	}
+
+	msgJSON, err := json.Marshal(timeBombMsg)
+	if err != nil {
+		return fmt.Errorf("failed to marshal timebomb message: %w", err)
+	}
+
+	if err := redisClient.Publish(ctx, config.TimeBombChannel, string(msgJSON)).Err(); err != nil {
+		return fmt.Errorf("failed to publish to %s: %w", config.TimeBombChannel, err)
+	}
+
+	log.Printf("Successfully set TTL of %d seconds on message %s in channel %s", config.TimeBombTTL, timestamp, channel)
+	return nil
 }
