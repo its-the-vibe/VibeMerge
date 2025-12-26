@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 
 	"github.com/redis/go-redis/v9"
@@ -101,7 +102,7 @@ const (
 var currentLogLevel LogLevel
 
 func parseLogLevel(level string) LogLevel {
-	switch level {
+	switch strings.ToUpper(level) {
 	case "DEBUG":
 		return LogLevelDebug
 	case "INFO":
