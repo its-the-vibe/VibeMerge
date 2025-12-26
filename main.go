@@ -155,9 +155,8 @@ func getEnvInt(key string, defaultValue int) int {
 	if value := os.Getenv(key); value != "" {
 		if intValue, err := strconv.Atoi(value); err == nil {
 			return intValue
-		} else {
-			log.Printf("Warning: invalid integer value for %s: %s, using default: %d", key, value, defaultValue)
 		}
+		log.Printf("Warning: invalid integer value for %s: %s, using default: %d", key, value, defaultValue)
 	}
 	return defaultValue
 }
