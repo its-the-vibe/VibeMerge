@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 
 	"github.com/redis/go-redis/v9"
@@ -26,6 +27,7 @@ type Config struct {
 	PoppitQueue     string
 	TimeBombChannel string
 	TimeBombTTL     int
+	LogLevel        string
 }
 
 // ReactionEvent represents the message from slack-relay-reaction-added channel
@@ -87,8 +89,62 @@ type TimeBombMessage struct {
 	TTL     int    `json:"ttl"`
 }
 
+// LogLevel represents the logging level
+type LogLevel int
+
+const (
+	LogLevelDebug LogLevel = iota
+	LogLevelInfo
+	LogLevelWarning
+	LogLevelError
+)
+
+var currentLogLevel LogLevel
+
+func parseLogLevel(level string) LogLevel {
+	switch strings.ToUpper(level) {
+	case "DEBUG":
+		return LogLevelDebug
+	case "INFO":
+		return LogLevelInfo
+	case "WARNING", "WARN":
+		return LogLevelWarning
+	case "ERROR":
+		return LogLevelError
+	default:
+		return LogLevelInfo
+	}
+}
+
+func logDebug(format string, v ...interface{}) {
+	if LogLevelDebug >= currentLogLevel {
+		log.Printf("[DEBUG] "+format, v...)
+	}
+}
+
+func logInfo(format string, v ...interface{}) {
+	if LogLevelInfo >= currentLogLevel {
+		log.Printf("[INFO] "+format, v...)
+	}
+}
+
+func logWarning(format string, v ...interface{}) {
+	if LogLevelWarning >= currentLogLevel {
+		log.Printf("[WARNING] "+format, v...)
+	}
+}
+
+func logError(format string, v ...interface{}) {
+	if LogLevelError >= currentLogLevel {
+		log.Printf("[ERROR] "+format, v...)
+	}
+}
+
 func main() {
 	config := loadConfig()
+	
+	// Set the log level
+	currentLogLevel = parseLogLevel(config.LogLevel)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -109,7 +165,7 @@ func main() {
 	if err := redisClient.Ping(ctx).Err(); err != nil {
 		log.Fatalf("Failed to connect to Redis: %v", err)
 	}
-	log.Println("Connected to Redis successfully")
+	logInfo("Connected to Redis successfully")
 
 	// Initialize Slack client
 	slackClient := slack.New(config.SlackBotToken)
@@ -119,7 +175,7 @@ func main() {
 
 	// Wait for shutdown signal
 	<-sigChan
-	log.Println("Shutdown signal received, exiting...")
+	logInfo("Shutdown signal received, exiting...")
 	cancel()
 }
 
@@ -135,6 +191,7 @@ func loadConfig() *Config {
 		PoppitQueue:     getEnv("POPPIT_QUEUE", "poppit-commands"),
 		TimeBombChannel: getEnv("TIMEBOMB_CHANNEL", "timebomb-messages"),
 		TimeBombTTL:     getEnvInt("TIMEBOMB_TTL", 86400), // 24 hours in seconds
+		LogLevel:        getEnv("LOG_LEVEL", "INFO"),
 	}
 
 	if config.SlackBotToken == "" {
@@ -156,7 +213,8 @@ func getEnvInt(key string, defaultValue int) int {
 		if intValue, err := strconv.Atoi(value); err == nil {
 			return intValue
 		}
-		log.Printf("Warning: invalid integer value for %s: %s, using default: %d", key, value, defaultValue)
+		// Use standard log here since logging system may not be initialized yet
+		log.Printf("[WARNING] invalid integer value for %s: %s, using default: %d", key, value, defaultValue)
 	}
 	return defaultValue
 }
@@ -165,7 +223,7 @@ func processReactions(ctx context.Context, redisClient *redis.Client, slackClien
 	pubsub := redisClient.Subscribe(ctx, "slack-relay-reaction-added")
 	defer pubsub.Close()
 
-	log.Println("Subscribed to slack-relay-reaction-added channel")
+	logInfo("Subscribed to slack-relay-reaction-added channel")
 
 	for {
 		select {
@@ -174,12 +232,12 @@ func processReactions(ctx context.Context, redisClient *redis.Client, slackClien
 		default:
 			msg, err := pubsub.ReceiveMessage(ctx)
 			if err != nil {
-				log.Printf("Error receiving message: %v", err)
+				logError("Error receiving message: %v", err)
 				continue
 			}
 
 			if err := handleReactionMessage(ctx, msg.Payload, redisClient, slackClient, config); err != nil {
-				log.Printf("Error handling reaction message: %v", err)
+				logError("Error handling reaction message: %v", err)
 			}
 		}
 	}
@@ -193,11 +251,11 @@ func handleReactionMessage(ctx context.Context, payload string, redisClient *red
 
 	// Only process configured target emoji reactions
 	if reactionEvent.Event.Reaction != config.TargetEmoji {
-		log.Printf("Ignoring reaction: %s", reactionEvent.Event.Reaction)
+		logDebug("Ignoring reaction: %s", reactionEvent.Event.Reaction)
 		return nil
 	}
 
-	log.Printf("Processing %s reaction on message %s in channel %s",
+	logInfo("Processing %s reaction on message %s in channel %s",
 		config.TargetEmoji, reactionEvent.Event.Item.Ts, reactionEvent.Event.Item.Channel)
 
 	// Retrieve the message from Slack
@@ -207,11 +265,11 @@ func handleReactionMessage(ctx context.Context, payload string, redisClient *red
 	}
 
 	if metadata == nil {
-		log.Println("No PR metadata found in message, ignoring")
+		logDebug("No PR metadata found in message, ignoring")
 		return nil
 	}
 
-	log.Printf("Found PR metadata: repo=%s, pr=%d", metadata.Repository, metadata.PRNumber)
+	logInfo("Found PR metadata: repo=%s, pr=%d", metadata.Repository, metadata.PRNumber)
 
 	// Create Poppit payload
 	poppitPayload := PoppitPayload{
@@ -235,14 +293,14 @@ func handleReactionMessage(ctx context.Context, payload string, redisClient *red
 		return fmt.Errorf("failed to push to %s: %w", config.PoppitQueue, err)
 	}
 
-	log.Printf("Successfully queued merge command for PR %d in %s", metadata.PRNumber, metadata.Repository)
+	logInfo("Successfully queued merge command for PR %d in %s", metadata.PRNumber, metadata.Repository)
 
 	// Set TTL on the processed message by publishing to TimeBomb
 	channel := reactionEvent.Event.Item.Channel
 	timestamp := reactionEvent.Event.Item.Ts
 	if err := publishTimeBombMessage(ctx, redisClient, config, channel, timestamp); err != nil {
 		// Log the error but don't fail the entire operation
-		log.Printf("Warning: failed to set TTL on message: %v", err)
+		logWarning("Failed to set TTL on message: %v", err)
 	}
 
 	return nil
@@ -309,6 +367,6 @@ func publishTimeBombMessage(ctx context.Context, redisClient *redis.Client, conf
 		return fmt.Errorf("failed to publish to %s: %w", config.TimeBombChannel, err)
 	}
 
-	log.Printf("Successfully set TTL of %d seconds on message %s in channel %s", config.TimeBombTTL, timestamp, channel)
+	logInfo("Successfully set TTL of %d seconds on message %s in channel %s", config.TimeBombTTL, timestamp, channel)
 	return nil
 }
