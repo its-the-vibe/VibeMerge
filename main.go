@@ -155,6 +155,8 @@ func getEnvInt(key string, defaultValue int) int {
 	if value := os.Getenv(key); value != "" {
 		if intValue, err := strconv.Atoi(value); err == nil {
 			return intValue
+		} else {
+			log.Printf("Warning: invalid integer value for %s: %s, using default: %d", key, value, defaultValue)
 		}
 	}
 	return defaultValue
@@ -237,7 +239,9 @@ func handleReactionMessage(ctx context.Context, payload string, redisClient *red
 	log.Printf("Successfully queued merge command for PR %d in %s", metadata.PRNumber, metadata.Repository)
 
 	// Set TTL on the processed message by publishing to TimeBomb
-	if err := publishTimeBombMessage(ctx, redisClient, config, reactionEvent.Event.Item.Channel, reactionEvent.Event.Item.Ts); err != nil {
+	channel := reactionEvent.Event.Item.Channel
+	timestamp := reactionEvent.Event.Item.Ts
+	if err := publishTimeBombMessage(ctx, redisClient, config, channel, timestamp); err != nil {
 		// Log the error but don't fail the entire operation
 		log.Printf("Warning: failed to set TTL on message: %v", err)
 	}
