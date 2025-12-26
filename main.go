@@ -117,25 +117,25 @@ func parseLogLevel(level string) LogLevel {
 }
 
 func logDebug(format string, v ...interface{}) {
-	if currentLogLevel <= LogLevelDebug {
+	if LogLevelDebug >= currentLogLevel {
 		log.Printf("[DEBUG] "+format, v...)
 	}
 }
 
 func logInfo(format string, v ...interface{}) {
-	if currentLogLevel <= LogLevelInfo {
+	if LogLevelInfo >= currentLogLevel {
 		log.Printf("[INFO] "+format, v...)
 	}
 }
 
 func logWarning(format string, v ...interface{}) {
-	if currentLogLevel <= LogLevelWarning {
+	if LogLevelWarning >= currentLogLevel {
 		log.Printf("[WARNING] "+format, v...)
 	}
 }
 
 func logError(format string, v ...interface{}) {
-	if currentLogLevel <= LogLevelError {
+	if LogLevelError >= currentLogLevel {
 		log.Printf("[ERROR] "+format, v...)
 	}
 }
