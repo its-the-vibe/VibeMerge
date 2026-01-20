@@ -128,8 +128,7 @@ Messages must contain PR metadata:
   "repository": "its-the-vibe/VibeMerge",
   "pr_url": "https://github.com/its-the-vibe/VibeMerge/pull/42",
   "author": "username123",
-  "branch": "feature/add-metadata",
-  "event_action": "review_requested"
+  "branch": "feature/add-metadata"
 }
 ```
 
@@ -141,7 +140,7 @@ VibeMerge generates commands for Poppit:
 {
   "repo": "its-the-vibe/VibeMerge",
   "branch": "refs/heads/main",
-  "type": "git-webhook",
+  "type": "vibe-merge",
   "dir": "/tmp/vibemerge",
   "commands": [
     "gh pr --repo its-the-vibe/VibeMerge ready 42",

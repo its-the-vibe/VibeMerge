@@ -65,12 +65,11 @@ type ReactionEvent struct {
 
 // PRMetadata represents the metadata embedded in Slack messages
 type PRMetadata struct {
-	PRNumber    int    `json:"pr_number"`
-	Repository  string `json:"repository"`
-	PRURL       string `json:"pr_url"`
-	Author      string `json:"author"`
-	Branch      string `json:"branch"`
-	EventAction string `json:"event_action"`
+	PRNumber   int    `json:"pr_number"`
+	Repository string `json:"repository"`
+	PRURL      string `json:"pr_url"`
+	Author     string `json:"author"`
+	Branch     string `json:"branch"`
 }
 
 // PoppitPayload represents the command payload to send to Poppit
@@ -142,7 +141,7 @@ func logError(format string, v ...interface{}) {
 
 func main() {
 	config := loadConfig()
-	
+
 	// Set the log level
 	currentLogLevel = parseLogLevel(config.LogLevel)
 
@@ -275,7 +274,7 @@ func handleReactionMessage(ctx context.Context, payload string, redisClient *red
 	poppitPayload := PoppitPayload{
 		Repo:   metadata.Repository,
 		Branch: config.TargetBranch,
-		Type:   metadata.EventAction,
+		Type:   "vibe-merge",
 		Dir:    config.WorkDir,
 		Commands: []string{
 			fmt.Sprintf("gh pr --repo %s ready %d", metadata.Repository, metadata.PRNumber),
