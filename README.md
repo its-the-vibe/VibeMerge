@@ -1,5 +1,7 @@
 # VibeMerge
 
+[![CI](https://github.com/its-the-vibe/VibeMerge/actions/workflows/ci.yaml/badge.svg)](https://github.com/its-the-vibe/VibeMerge/actions/workflows/ci.yaml)
+
 Listen for emoji reactions and merge PRs
 
 ## Overview
@@ -49,6 +51,24 @@ go build -o vibemerge
 export SLACK_BOT_TOKEN="xoxb-your-token-here"
 export REDIS_ADDR="localhost:6379"
 ./vibemerge
+```
+
+### Makefile Targets
+
+A `Makefile` is provided for common development tasks:
+
+| Target | Description |
+|--------|-------------|
+| `make build` | Compile the binary (`./vibemerge`) |
+| `make test` | Run all unit tests with verbose output |
+| `make lint` | Run `go vet` static analysis |
+| `make tidy` | Tidy Go module dependencies |
+| `make clean` | Remove the compiled binary |
+
+```bash
+make build   # build the binary
+make test    # run tests
+make lint    # run go vet
 ```
 
 ## Docker Deployment

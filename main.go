@@ -271,16 +271,7 @@ func handleReactionMessage(ctx context.Context, payload string, redisClient *red
 	logInfo("Found PR metadata: repo=%s, pr=%d", metadata.Repository, metadata.PRNumber)
 
 	// Create Poppit payload
-	poppitPayload := PoppitPayload{
-		Repo:   metadata.Repository,
-		Branch: config.TargetBranch,
-		Type:   "vibe-merge",
-		Dir:    config.WorkDir,
-		Commands: []string{
-			fmt.Sprintf("gh pr --repo %s ready %d", metadata.Repository, metadata.PRNumber),
-			fmt.Sprintf("gh pr --repo %s merge %d --squash", metadata.Repository, metadata.PRNumber),
-		},
-	}
+	poppitPayload := buildPoppitPayload(metadata, config)
 
 	// Publish to Poppit queue
 	payloadJSON, err := json.Marshal(poppitPayload)
@@ -348,6 +339,19 @@ func getMessageMetadata(slackClient *slack.Client, channel, timestamp string) (*
 	}
 
 	return &metadata, nil
+}
+
+func buildPoppitPayload(metadata *PRMetadata, config *Config) PoppitPayload {
+	return PoppitPayload{
+		Repo:   metadata.Repository,
+		Branch: config.TargetBranch,
+		Type:   "vibe-merge",
+		Dir:    config.WorkDir,
+		Commands: []string{
+			fmt.Sprintf("gh pr --repo %s ready %d", metadata.Repository, metadata.PRNumber),
+			fmt.Sprintf("gh pr --repo %s merge %d --squash", metadata.Repository, metadata.PRNumber),
+		},
+	}
 }
 
 func publishTimeBombMessage(ctx context.Context, redisClient *redis.Client, config *Config, channel, timestamp string) error {
