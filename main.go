@@ -344,14 +344,15 @@ func getMessageMetadata(slackClient *slack.Client, channel, timestamp string) (*
 }
 
 func buildPoppitPayload(metadata *PRMetadata, config *Config, reaction string) PoppitPayload {
-	commands := []string{
-		fmt.Sprintf("gh pr --repo %s ready %d", metadata.Repository, metadata.PRNumber),
-		fmt.Sprintf("gh pr --repo %s merge %d --squash", metadata.Repository, metadata.PRNumber),
-	}
-
+	var commands []string
 	if reaction == "x" {
 		commands = []string{
 			fmt.Sprintf("gh pr --repo %s close %d", metadata.Repository, metadata.PRNumber),
+		}
+	} else {
+		commands = []string{
+			fmt.Sprintf("gh pr --repo %s ready %d", metadata.Repository, metadata.PRNumber),
+			fmt.Sprintf("gh pr --repo %s merge %d --squash", metadata.Repository, metadata.PRNumber),
 		}
 	}
 
