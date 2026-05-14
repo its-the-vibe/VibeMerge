@@ -113,7 +113,7 @@ docker run -d \
 2. **Filter**: `heart_eyes_cat` reactions trigger merge commands; `x` reactions trigger close commands
 3. **Metadata Retrieval**: Fetches the Slack message using the Slack API
 4. **Validation**: Checks for PR metadata (repository, PR number, etc.)
-5. **Command Generation**: Creates Poppit payload with merge commands
+5. **Command Generation**: Creates Poppit payload with merge or close commands
 6. **Queue**: Pushes the payload to the `poppit-commands` Redis list
 7. **TTL Setting**: Publishes a message to TimeBomb to delete the processed message after 24 hours
 

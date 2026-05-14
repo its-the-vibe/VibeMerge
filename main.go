@@ -98,6 +98,8 @@ const (
 	LogLevelError
 )
 
+const closeReaction = "x"
+
 var currentLogLevel LogLevel
 
 func parseLogLevel(level string) LogLevel {
@@ -251,7 +253,7 @@ func handleReactionMessage(ctx context.Context, payload string, redisClient *red
 	reaction := reactionEvent.Event.Reaction
 
 	// Only process configured merge emoji and :x: close reactions
-	if reaction != config.TargetEmoji && reaction != "x" {
+	if reaction != config.TargetEmoji && reaction != closeReaction {
 		logDebug("Ignoring reaction: %s", reaction)
 		return nil
 	}
@@ -345,7 +347,7 @@ func getMessageMetadata(slackClient *slack.Client, channel, timestamp string) (*
 
 func buildPoppitPayload(metadata *PRMetadata, config *Config, reaction string) PoppitPayload {
 	var commands []string
-	if reaction == "x" {
+	if reaction == closeReaction {
 		commands = []string{
 			fmt.Sprintf("gh pr --repo %s close %d", metadata.Repository, metadata.PRNumber),
 		}
