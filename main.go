@@ -98,6 +98,8 @@ const (
 	LogLevelError
 )
 
+const closeReaction = "x"
+
 var currentLogLevel LogLevel
 
 func parseLogLevel(level string) LogLevel {
@@ -248,14 +250,16 @@ func handleReactionMessage(ctx context.Context, payload string, redisClient *red
 		return fmt.Errorf("failed to unmarshal reaction event: %w", err)
 	}
 
-	// Only process configured target emoji reactions
-	if reactionEvent.Event.Reaction != config.TargetEmoji {
-		logDebug("Ignoring reaction: %s", reactionEvent.Event.Reaction)
+	reaction := reactionEvent.Event.Reaction
+
+	// Only process configured merge emoji and :x: close reactions
+	if reaction != config.TargetEmoji && reaction != closeReaction {
+		logDebug("Ignoring reaction: %s", reaction)
 		return nil
 	}
 
 	logInfo("Processing %s reaction on message %s in channel %s",
-		config.TargetEmoji, reactionEvent.Event.Item.Ts, reactionEvent.Event.Item.Channel)
+		reaction, reactionEvent.Event.Item.Ts, reactionEvent.Event.Item.Channel)
 
 	// Retrieve the message from Slack
 	metadata, err := getMessageMetadata(slackClient, reactionEvent.Event.Item.Channel, reactionEvent.Event.Item.Ts)
@@ -271,7 +275,7 @@ func handleReactionMessage(ctx context.Context, payload string, redisClient *red
 	logInfo("Found PR metadata: repo=%s, pr=%d", metadata.Repository, metadata.PRNumber)
 
 	// Create Poppit payload
-	poppitPayload := buildPoppitPayload(metadata, config)
+	poppitPayload := buildPoppitPayload(metadata, config, reaction)
 
 	// Publish to Poppit queue
 	payloadJSON, err := json.Marshal(poppitPayload)
@@ -283,7 +287,7 @@ func handleReactionMessage(ctx context.Context, payload string, redisClient *red
 		return fmt.Errorf("failed to push to %s: %w", config.PoppitQueue, err)
 	}
 
-	logInfo("Successfully queued merge command for PR %d in %s", metadata.PRNumber, metadata.Repository)
+	logInfo("Successfully queued command for PR %d in %s", metadata.PRNumber, metadata.Repository)
 
 	// Set TTL on the processed message by publishing to TimeBomb
 	channel := reactionEvent.Event.Item.Channel
@@ -341,16 +345,25 @@ func getMessageMetadata(slackClient *slack.Client, channel, timestamp string) (*
 	return &metadata, nil
 }
 
-func buildPoppitPayload(metadata *PRMetadata, config *Config) PoppitPayload {
+func buildPoppitPayload(metadata *PRMetadata, config *Config, reaction string) PoppitPayload {
+	var commands []string
+	if reaction == closeReaction {
+		commands = []string{
+			fmt.Sprintf("gh pr --repo %s close %d", metadata.Repository, metadata.PRNumber),
+		}
+	} else {
+		commands = []string{
+			fmt.Sprintf("gh pr --repo %s ready %d", metadata.Repository, metadata.PRNumber),
+			fmt.Sprintf("gh pr --repo %s merge %d --squash", metadata.Repository, metadata.PRNumber),
+		}
+	}
+
 	return PoppitPayload{
 		Repo:   metadata.Repository,
 		Branch: config.TargetBranch,
 		Type:   "vibe-merge",
 		Dir:    config.WorkDir,
-		Commands: []string{
-			fmt.Sprintf("gh pr --repo %s ready %d", metadata.Repository, metadata.PRNumber),
-			fmt.Sprintf("gh pr --repo %s merge %d --squash", metadata.Repository, metadata.PRNumber),
-		},
+		Commands: commands,
 	}
 }
 

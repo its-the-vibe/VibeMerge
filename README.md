@@ -2,16 +2,16 @@
 
 [![CI](https://github.com/its-the-vibe/VibeMerge/actions/workflows/ci.yaml/badge.svg)](https://github.com/its-the-vibe/VibeMerge/actions/workflows/ci.yaml)
 
-Listen for emoji reactions and merge PRs
+Listen for emoji reactions and merge or close PRs
 
 ## Overview
 
-VibeMerge is a Go service that listens for Slack emoji reactions and automatically merges GitHub pull requests. When a user reacts with the `:heart_eyes_cat:` emoji on a Slack message containing PR metadata, VibeMerge will queue merge commands for execution by [Poppit](https://github.com/its-the-vibe/Poppit).
+VibeMerge is a Go service that listens for Slack emoji reactions and automatically manages GitHub pull requests. When a user reacts with the `:heart_eyes_cat:` emoji on a Slack message containing PR metadata, VibeMerge queues merge commands. When a user reacts with `:x:`, VibeMerge queues a close command. Commands are executed by [Poppit](https://github.com/its-the-vibe/Poppit).
 
 ## Features
 
 - Subscribes to Redis pub/sub channel for Slack reaction events
-- Filters for specific emoji reactions (`heart_eyes_cat`)
+- Filters for specific emoji reactions (`heart_eyes_cat` for merge, `x` for close)
 - Retrieves message metadata from Slack API
 - Publishes merge commands to Redis list for Poppit execution
 - Configurable via environment variables
@@ -110,10 +110,10 @@ docker run -d \
 ## How It Works
 
 1. **Reaction Event**: VibeMerge subscribes to the `slack-relay-reaction-added` Redis channel
-2. **Filter**: Only `heart_eyes_cat` reactions are processed
+2. **Filter**: `heart_eyes_cat` reactions trigger merge commands; `x` reactions trigger close commands
 3. **Metadata Retrieval**: Fetches the Slack message using the Slack API
 4. **Validation**: Checks for PR metadata (repository, PR number, etc.)
-5. **Command Generation**: Creates Poppit payload with merge commands
+5. **Command Generation**: Creates Poppit payload with merge or close commands
 6. **Queue**: Pushes the payload to the `poppit-commands` Redis list
 7. **TTL Setting**: Publishes a message to TimeBomb to delete the processed message after 24 hours
 
@@ -165,6 +165,20 @@ VibeMerge generates commands for Poppit:
   "commands": [
     "gh pr --repo its-the-vibe/VibeMerge ready 42",
     "gh pr --repo its-the-vibe/VibeMerge merge 42 --squash"
+  ]
+}
+```
+
+For `:x:` reactions, VibeMerge sends:
+
+```json
+{
+  "repo": "its-the-vibe/VibeMerge",
+  "branch": "refs/heads/main",
+  "type": "vibe-merge",
+  "dir": "/tmp/vibemerge",
+  "commands": [
+    "gh pr --repo its-the-vibe/VibeMerge close 42"
   ]
 }
 ```

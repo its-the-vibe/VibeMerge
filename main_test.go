@@ -168,7 +168,7 @@ func TestPRMetadataUnmarshal(t *testing.T) {
 // buildPoppitPayload
 // ---------------------------------------------------------------------------
 
-func TestBuildPoppitPayload(t *testing.T) {
+func TestBuildPoppitPayloadMerge(t *testing.T) {
 	metadata := &PRMetadata{
 		PRNumber:   42,
 		Repository: "its-the-vibe/VibeMerge",
@@ -178,7 +178,7 @@ func TestBuildPoppitPayload(t *testing.T) {
 		WorkDir:      "/tmp/vibemerge",
 	}
 
-	payload := buildPoppitPayload(metadata, config)
+	payload := buildPoppitPayload(metadata, config, "heart_eyes_cat")
 
 	if payload.Repo != "its-the-vibe/VibeMerge" {
 		t.Errorf("Repo = %q, want %q", payload.Repo, "its-the-vibe/VibeMerge")
@@ -204,5 +204,27 @@ func TestBuildPoppitPayload(t *testing.T) {
 	wantMerge := "gh pr --repo its-the-vibe/VibeMerge merge 42 --squash"
 	if payload.Commands[1] != wantMerge {
 		t.Errorf("Commands[1] = %q, want %q", payload.Commands[1], wantMerge)
+	}
+}
+
+func TestBuildPoppitPayloadClose(t *testing.T) {
+	metadata := &PRMetadata{
+		PRNumber:   42,
+		Repository: "its-the-vibe/VibeMerge",
+	}
+	config := &Config{
+		TargetBranch: "refs/heads/main",
+		WorkDir:      "/tmp/vibemerge",
+	}
+
+	payload := buildPoppitPayload(metadata, config, "x")
+
+	if len(payload.Commands) != 1 {
+		t.Fatalf("len(Commands) = %d, want 1", len(payload.Commands))
+	}
+
+	wantClose := "gh pr --repo its-the-vibe/VibeMerge close 42"
+	if payload.Commands[0] != wantClose {
+		t.Errorf("Commands[0] = %q, want %q", payload.Commands[0], wantClose)
 	}
 }
