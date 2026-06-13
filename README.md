@@ -165,6 +165,7 @@ VibeMerge generates commands for Poppit:
   "commands": [
     "gh pr --repo its-the-vibe/VibeMerge ready 42",
     "gh pr --repo its-the-vibe/VibeMerge merge 42 --squash"
+    "gh api repos/its-the-vibe/VibeMerge/git/ref/heads/main --template '{{.object.sha}}'"
   ],
   "metadata": {
     "pr_number": 42,
