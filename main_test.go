@@ -192,8 +192,8 @@ func TestBuildPoppitPayloadMerge(t *testing.T) {
 	if payload.Dir != "/tmp/vibemerge" {
 		t.Errorf("Dir = %q, want %q", payload.Dir, "/tmp/vibemerge")
 	}
-	if len(payload.Commands) != 2 {
-		t.Fatalf("len(Commands) = %d, want 2", len(payload.Commands))
+	if len(payload.Commands) != 3 {
+		t.Fatalf("len(Commands) = %d, want 3", len(payload.Commands))
 	}
 
 	wantReady := "gh pr --repo its-the-vibe/VibeMerge ready 42"
@@ -204,6 +204,11 @@ func TestBuildPoppitPayloadMerge(t *testing.T) {
 	wantMerge := "gh pr --repo its-the-vibe/VibeMerge merge 42 --squash"
 	if payload.Commands[1] != wantMerge {
 		t.Errorf("Commands[1] = %q, want %q", payload.Commands[1], wantMerge)
+	}
+
+	wantSha := "gh api repos/its-the-vibe/VibeMerge/git/ref/heads/main --template '{{.object.sha}}'"
+	if payload.Commands[2] != wantSha {
+		t.Errorf("Commands[2] = %q, want %q", payload.Commands[2], wantSha)
 	}
 }
 
