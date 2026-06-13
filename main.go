@@ -356,6 +356,7 @@ func buildPoppitPayload(metadata *PRMetadata, config *Config, reaction string) P
 		commands = []string{
 			fmt.Sprintf("gh pr --repo %s ready %d", metadata.Repository, metadata.PRNumber),
 			fmt.Sprintf("gh pr --repo %s merge %d --squash", metadata.Repository, metadata.PRNumber),
+			fmt.Sprintf("gh api repos/%s/git/ref/heads/main --template '{{.object.sha}}'", metadata.Repository),
 		}
 	}
 
