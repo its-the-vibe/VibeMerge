@@ -74,11 +74,12 @@ type PRMetadata struct {
 
 // PoppitPayload represents the command payload to send to Poppit
 type PoppitPayload struct {
-	Repo     string   `json:"repo"`
-	Branch   string   `json:"branch"`
-	Type     string   `json:"type"`
-	Dir      string   `json:"dir"`
-	Commands []string `json:"commands"`
+	Repo     string                 `json:"repo"`
+	Branch   string                 `json:"branch"`
+	Type     string                 `json:"type"`
+	Dir      string                 `json:"dir"`
+	Commands []string               `json:"commands"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // TimeBombMessage represents the TTL message to send to TimeBomb
@@ -359,11 +360,15 @@ func buildPoppitPayload(metadata *PRMetadata, config *Config, reaction string) P
 	}
 
 	return PoppitPayload{
-		Repo:   metadata.Repository,
-		Branch: config.TargetBranch,
-		Type:   "vibe-merge",
-		Dir:    config.WorkDir,
+		Repo:     metadata.Repository,
+		Branch:   config.TargetBranch,
+		Type:     "vibe-merge",
+		Dir:      config.WorkDir,
 		Commands: commands,
+		Metadata: map[string]interface{}{
+			"pr_number": metadata.PRNumber,
+			"pr_url":    metadata.PRURL,
+		},
 	}
 }
 
