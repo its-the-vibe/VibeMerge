@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    image: ghcr.io/its-the-vibe/vibemerge:latest
+    pull_policy: always
     container_name: vibemerge
     read_only: true
     extra_hosts:
